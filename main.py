@@ -5,16 +5,18 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher, types
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
+import uuid
 
 # ------------------ ENV ------------------
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEB_URL = os.getenv("WEB_URL")      # без слеша в конце
+WEB_URL = os.getenv("WEB_URL")      # без слеша
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 # ------------------ BOT ------------------
@@ -24,6 +26,9 @@ dp = Dispatcher(bot)
 # ------------------ DATA ------------------
 products = []
 product_id = 1
+
+# ------------------ STATIC ------------------
+os.makedirs("static", exist_ok=True)
 
 # ------------------ FASTAPI LIFESPAN ------------------
 @asynccontextmanager
@@ -36,8 +41,9 @@ async def lifespan(app: FastAPI):
     await bot.session.close()
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ------------------ SHOP (ШАГ 1: КОРЗИНА) ------------------
+# ------------------ SHOP (ШАГ 1) ------------------
 @app.get("/shop", response_class=HTMLResponse)
 async def shop():
     html = """
@@ -113,17 +119,17 @@ async def shop():
     """
     return html
 
-# ------------------ ADMIN PANEL ------------------
+# ------------------ ADMIN PANEL (ШАГ 2) ------------------
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_panel():
     return """
     <html>
     <body style="font-family:sans-serif; padding:20px">
         <h2>⚙️ Админка</h2>
-        <form action="/admin/add" method="post">
+        <form action="/admin/add" method="post" enctype="multipart/form-data">
             <input name="name" placeholder="Название" required><br><br>
             <input name="price" type="number" placeholder="Цена" required><br><br>
-            <input name="photo" placeholder="URL фото" required><br><br>
+            <input name="photo" type="file" accept="image/*" required><br><br>
             <button type="submit">➕ Добавить товар</button>
         </form>
     </body>
@@ -134,14 +140,21 @@ async def admin_panel():
 async def admin_add(
     name: str = Form(...),
     price: int = Form(...),
-    photo: str = Form(...)
+    photo: UploadFile = File(...)
 ):
     global product_id
+
+    filename = f"{uuid.uuid4()}.jpg"
+    filepath = f"static/{filename}"
+
+    with open(filepath, "wb") as f:
+        f.write(await photo.read())
+
     products.append({
         "id": product_id,
         "name": name,
         "price": price,
-        "photo": photo
+        "photo": f"/static/{filename}"
     })
     product_id += 1
 
@@ -180,10 +193,9 @@ async def admin_cmd(message: types.Message):
 # ------------------ ORDER HANDLER ------------------
 @dp.message_handler(content_types=types.ContentType.WEB_APP_DATA)
 async def webapp_order(message: types.Message):
-    order_text = message.web_app_data.data
     await bot.send_message(
         ADMIN_ID,
-        f"📦 Новый заказ\n\n{order_text}"
+        f"📦 Новый заказ\n\n{message.web_app_data.data}"
     )
     await message.answer("✅ Заказ отправлен! Спасибо 🙌")
 
