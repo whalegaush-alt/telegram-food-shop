@@ -14,7 +14,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEB_URL = os.getenv("WEB_URL")        # без слеша на конце
+WEB_URL = os.getenv("WEB_URL")      # без слеша в конце
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 # ------------------ BOT ------------------
@@ -37,16 +37,55 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# ------------------ SHOP ------------------
+# ------------------ SHOP (ШАГ 1: КОРЗИНА) ------------------
 @app.get("/shop", response_class=HTMLResponse)
 async def shop():
     html = """
     <html>
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1">
+      <script src="https://telegram.org/js/telegram-web-app.js"></script>
     </head>
     <body style="font-family:sans-serif; padding:10px; background:#f5f5f5">
       <h2>🛒 Магазин</h2>
+
+      <script>
+        let cart = {};
+
+        function add(id, name, price) {
+          if (!cart[id]) cart[id] = {name:name, price:price, qty:0};
+          cart[id].qty++;
+          render();
+        }
+
+        function removeItem(id) {
+          if (cart[id] && cart[id].qty > 0) {
+            cart[id].qty--;
+            render();
+          }
+        }
+
+        function render() {
+          let total = 0;
+          let text = "";
+          for (let id in cart) {
+            if (cart[id].qty > 0) {
+              total += cart[id].qty * cart[id].price;
+              text += cart[id].name + " x" + cart[id].qty + "\\n";
+            }
+          }
+          document.getElementById("total").innerText = "Итого: " + total + " zł";
+          window.orderText = text + "\\n💰 Итого: " + total + " zł";
+        }
+
+        function checkout() {
+          if (!window.orderText || window.orderText.trim() === "") {
+            alert("Корзина пуста");
+            return;
+          }
+          Telegram.WebApp.sendData(window.orderText);
+        }
+      </script>
     """
 
     if not products:
@@ -56,13 +95,22 @@ async def shop():
         html += f"""
         <div style="background:#fff; padding:10px; margin-bottom:10px;
                     border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,.1)">
-            <img src="{p['photo']}" width="120"><br><br>
+            <img src="{p['photo']}" width="120"><br>
             <b>{p['name']}</b><br>
-            💰 {p['price']} zł
+            💰 {p['price']} zł<br><br>
+            <button onclick="add({p['id']}, '{p['name']}', {p['price']})">➕</button>
+            <button onclick="removeItem({p['id']})">➖</button>
         </div>
         """
 
-    html += "</body></html>"
+    html += """
+      <h3 id="total">Итого: 0 zł</h3>
+      <button onclick="checkout()" style="padding:10px; font-size:16px">
+        ✅ Оформить заказ
+      </button>
+    </body>
+    </html>
+    """
     return html
 
 # ------------------ ADMIN PANEL ------------------
@@ -128,6 +176,16 @@ async def admin_cmd(message: types.Message):
         )
     )
     await message.answer("Админ-панель 👑", reply_markup=kb)
+
+# ------------------ ORDER HANDLER ------------------
+@dp.message_handler(content_types=types.ContentType.WEB_APP_DATA)
+async def webapp_order(message: types.Message):
+    order_text = message.web_app_data.data
+    await bot.send_message(
+        ADMIN_ID,
+        f"📦 Новый заказ\n\n{order_text}"
+    )
+    await message.answer("✅ Заказ отправлен! Спасибо 🙌")
 
 # ------------------ RUN ------------------
 if __name__ == "__main__":
