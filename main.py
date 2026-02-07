@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import uuid
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
@@ -9,28 +10,42 @@ from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-import uuid
 
-# ------------------ ENV ------------------
+from databases import Database
+from sqlalchemy import Table, Column, Integer, String, Float, MetaData
+
+# ------------------ LOAD ENV ------------------
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEB_URL = os.getenv("WEB_URL")      # без слеша
+WEB_URL = os.getenv("WEB_URL")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# ------------------ LOGGING ------------------
+logging.basicConfig(level=logging.INFO)
 
 # ------------------ BOT ------------------
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-# ------------------ DATA ------------------
-products = []
-product_id = 1
+# ------------------ DATABASE ------------------
+database = Database(DATABASE_URL)
+metadata = MetaData()
 
-# ------------------ STATIC ------------------
-os.makedirs("static", exist_ok=True)
+products_table = Table(
+    "products",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String, nullable=False),
+    Column("price", Float, nullable=False),
+    Column("photo", String, nullable=False)
+)
 
-# ------------------ FASTAPI LIFESPAN ------------------
+# ------------------ FASTAPI ------------------
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ------------------ LIFESPAN ------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.info("🚀 Bot polling started")
@@ -40,57 +55,79 @@ async def lifespan(app: FastAPI):
     task.cancel()
     await bot.session.close()
 
-app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.router.lifespan_context = lifespan
 
-# ------------------ SHOP (ШАГ 1) ------------------
+# ------------------ STARTUP / SHUTDOWN ------------------
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+    engine = database._backend._engine.sync_engine
+    metadata.create_all(engine)
+    os.makedirs("static", exist_ok=True)  # создаем папку для фото
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+# ------------------ ADMIN PANEL ------------------
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel():
+    return """
+    <html>
+    <body style="font-family:sans-serif; padding:20px">
+        <h2>⚙️ Админка</h2>
+        <form action="/admin/add" method="post" enctype="multipart/form-data">
+            <input name="name" placeholder="Название" required><br><br>
+            <input name="price" type="number" placeholder="Цена" required><br><br>
+            <input name="photo" type="file" accept="image/*" required><br><br>
+            <button type="submit">➕ Добавить товар</button>
+        </form>
+    </body>
+    </html>
+    """
+
+@app.post("/admin/add", response_class=HTMLResponse)
+async def admin_add(
+    name: str = Form(...),
+    price: float = Form(...),
+    photo: UploadFile = File(...)
+):
+    filename = f"{uuid.uuid4()}.jpg"
+    filepath = f"static/{filename}"
+    with open(filepath, "wb") as f:
+        f.write(await photo.read())
+
+    query = products_table.insert().values(
+        name=name,
+        price=price,
+        photo=f"/static/{filename}"
+    )
+    await database.execute(query)
+
+    return """
+    <h3>✅ Товар добавлен</h3>
+    <a href="/admin">← Назад</a>
+    """
+
+# ------------------ SHOP ------------------
 @app.get("/shop", response_class=HTMLResponse)
 async def shop():
+    products = await database.fetch_all(products_table.select())
+
     html = """
     <html>
     <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <script src="https://telegram.org/js/telegram-web-app.js"></script>
     </head>
     <body style="font-family:sans-serif; padding:10px; background:#f5f5f5">
       <h2>🛒 Магазин</h2>
-
       <script>
         let cart = {};
-
-        function add(id, name, price) {
-          if (!cart[id]) cart[id] = {name:name, price:price, qty:0};
-          cart[id].qty++;
-          render();
-        }
-
-        function removeItem(id) {
-          if (cart[id] && cart[id].qty > 0) {
-            cart[id].qty--;
-            render();
-          }
-        }
-
-        function render() {
-          let total = 0;
-          let text = "";
-          for (let id in cart) {
-            if (cart[id].qty > 0) {
-              total += cart[id].qty * cart[id].price;
-              text += cart[id].name + " x" + cart[id].qty + "\\n";
-            }
-          }
-          document.getElementById("total").innerText = "Итого: " + total + " zł";
-          window.orderText = text + "\\n💰 Итого: " + total + " zł";
-        }
-
-        function checkout() {
-          if (!window.orderText || window.orderText.trim() === "") {
-            alert("Корзина пуста");
-            return;
-          }
-          Telegram.WebApp.sendData(window.orderText);
-        }
+        function add(id,name,price){if(!cart[id])cart[id]={name:name,price:price,qty:0};cart[id].qty++;render();}
+        function removeItem(id){if(cart[id]&&cart[id].qty>0){cart[id].qty--;render();}}
+        function render(){let total=0,text="";for(let id in cart){if(cart[id].qty>0){total+=cart[id].qty*cart[id].price;text+=cart[id].name+" x"+cart[id].qty+"\\n";}}document.getElementById("total").innerText="Итого: "+total+" zł";window.orderText=text+"\\n💰 Итого: "+total+" zł";}
+        function checkout(){if(!window.orderText||window.orderText.trim()===""){alert("Корзина пуста");return;}Telegram.WebApp.sendData(window.orderText);}
       </script>
     """
 
@@ -119,50 +156,6 @@ async def shop():
     """
     return html
 
-# ------------------ ADMIN PANEL (ШАГ 2) ------------------
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_panel():
-    return """
-    <html>
-    <body style="font-family:sans-serif; padding:20px">
-        <h2>⚙️ Админка</h2>
-        <form action="/admin/add" method="post" enctype="multipart/form-data">
-            <input name="name" placeholder="Название" required><br><br>
-            <input name="price" type="number" placeholder="Цена" required><br><br>
-            <input name="photo" type="file" accept="image/*" required><br><br>
-            <button type="submit">➕ Добавить товар</button>
-        </form>
-    </body>
-    </html>
-    """
-
-@app.post("/admin/add", response_class=HTMLResponse)
-async def admin_add(
-    name: str = Form(...),
-    price: int = Form(...),
-    photo: UploadFile = File(...)
-):
-    global product_id
-
-    filename = f"{uuid.uuid4()}.jpg"
-    filepath = f"static/{filename}"
-
-    with open(filepath, "wb") as f:
-        f.write(await photo.read())
-
-    products.append({
-        "id": product_id,
-        "name": name,
-        "price": price,
-        "photo": f"/static/{filename}"
-    })
-    product_id += 1
-
-    return """
-    <h3>✅ Товар добавлен</h3>
-    <a href="/admin">← Назад</a>
-    """
-
 # ------------------ BOT COMMANDS ------------------
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
@@ -180,7 +173,6 @@ async def admin_cmd(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         await message.answer("⛔ Нет доступа")
         return
-
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(
         types.KeyboardButton(
