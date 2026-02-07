@@ -85,6 +85,13 @@ async def admin_panel():
     </body>
     </html>
     """
+    @app.get("/db-check")
+async def db_check():
+    try:
+        await database.fetch_one("SELECT 1")
+        return {"db": "OK"}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/admin/add", response_class=HTMLResponse)
 async def admin_add(
