@@ -1,9 +1,8 @@
-aiogram==2.25.1
-aiohttp==3.8.6
-python-dotenv==1.0.1
-fastapi==0.110.0
-uvicorn==0.27.1
-python-multipart
-databases
-asyncpg
+aiogram
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic-settings
+
 
