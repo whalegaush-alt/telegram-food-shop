@@ -1,1 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        .form-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input { display: block; width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
+        button { background: #0088cc; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; }
+        .item { border-bottom: 1px solid #ddd; padding: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="form-card">
+        <h3>Добавить новый товар</h3>
+        <form action="/add" method="post">
+            <input name="name" placeholder="Название" required>
+            <input name="price" type="number" step="0.01" placeholder="Цена" required>
+            <input name="photo" placeholder="Ссылка на фото (URL)" required>
+            <button type="submit">Добавить в магазин</button>
+        </form>
+    </div>
+
+    <h3>Текущие товары:</h3>
+    {% for item in items %}
+    <div class="item">
+        <b>{{ item.name }}</b> — {{ item.price }} руб.
+    </div>
+    {% endfor %}
+</body>
+</html>
 
