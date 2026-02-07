@@ -1,8 +1,7 @@
 aiogram
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-pydantic-settings
-
-
+jinja2
+python-multipart
