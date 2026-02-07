@@ -1,10 +1,11 @@
 import os
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
+# Убираем executor, он здесь не нужен
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -19,8 +20,22 @@ WEB_URL = os.getenv("WEB_URL")
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
+# ---------- LIFESPAN (Замена устаревшему on_event) ----------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Код здесь выполняется при СТАРТЕ приложения
+    logging.info("Starting bot polling...")
+    polling_task = asyncio.create_task(dp.start_polling())
+    
+    yield  # Здесь приложение работает
+    
+    # Код здесь выполняется при ОСТАНОВКЕ приложения
+    logging.info("Stopping bot...")
+    polling_task.cancel()
+    await bot.session.close()
+
 # ---------- FASTAPI ----------
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/shop", response_class=HTMLResponse)
 async def shop():
@@ -28,13 +43,16 @@ async def shop():
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Магазин</title>
+        <style>
+            body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
+            .item { background: white; padding: 10px; margin: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        </style>
       </head>
       <body>
         <h2>🛒 Онлайн-магазин</h2>
-        <p>🍔 Бургер — 25 zł</p>
-        <p>🥗 Салат — 18 zł</p>
-        <p>🥤 Напиток — 6 zł</p>
+        <div class="item">🍔 Бургер — 25 zł</div>
+        <div class="item">🥗 Салат — 18 zł</div>
+        <div class="item">🥤 Напиток — 6 zł</div>
       </body>
     </html>
     """
@@ -43,27 +61,19 @@ async def shop():
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    # Убедитесь, что WEB_URL в Railway указан БЕЗ слеша в конце
+    url = f"{WEB_URL}/shop"
     keyboard.add(
         types.KeyboardButton(
             text="🛒 Открыть магазин",
-            web_app=types.WebAppInfo(url=f"{WEB_URL}/shop")
+            web_app=types.WebAppInfo(url=url)
         )
     )
     await message.answer("Добро пожаловать в магазин 🍔", reply_markup=keyboard)
 
-# ---------- START BOT ----------
-async def start_bot():
-    executor.start_polling(dp, skip_updates=True)
-
-# ---------- START ALL ----------
-@app.on_event("startup")
-async def on_startup():
-    asyncio.create_task(start_bot())
-
+# ---------- RUN ----------
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", 8000)),
-        log_level="info"
-)
+    # Порт Railway подтягивает автоматически через переменную PORT
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+    
