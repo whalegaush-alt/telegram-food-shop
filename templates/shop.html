@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Супермаркет</title>
+    <title>Онлайн-супермаркет</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #27ae60; /* Основной зеленый */
+            --primary: #27ae60; /* Фирменный зеленый */
             --bg: #ffffff;
-            --secondary-bg: #f5f5f5;
+            --secondary-bg: #f5f5f7;
             --text-main: #1a1a1a;
             --text-muted: #7a7a7a;
-            --radius: 16px;
+            --radius-lg: 20px;
+            --radius-md: 12px;
         }
 
         body {
@@ -22,9 +23,10 @@
             background-color: var(--bg);
             color: var(--text-main);
             -webkit-tap-highlight-color: transparent;
+            scroll-behavior: smooth;
         }
 
-        /* Шапка */
+        /* Липкая шапка */
         header {
             padding: 15px 20px;
             display: flex;
@@ -32,102 +34,129 @@
             align-items: center;
             position: sticky;
             top: 0;
-            background: white;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--secondary-bg);
         }
 
-        .logo { font-weight: 700; font-size: 1.2rem; color: var(--primary); }
+        .logo { font-weight: 800; font-size: 1.3rem; color: var(--primary); letter-spacing: -0.5px; }
 
-        /* Поиск (декоративный) */
-        .search-bar {
-            padding: 0 20px 10px;
+        .cart-icon-wrapper {
+            font-size: 1.6rem;
+            cursor: pointer;
+            position: relative;
+            padding: 5px;
         }
+
+        #cart-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #eb5757;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+        }
+
+        /* Поиск */
+        .search-container { padding: 10px 20px; }
         .search-input {
             width: 100%;
-            padding: 12px;
+            padding: 14px 18px;
             background: var(--secondary-bg);
             border: none;
-            border-radius: 12px;
-            box-sizing: border-box;
+            border-radius: var(--radius-md);
             font-size: 1rem;
+            outline: none;
         }
 
-        /* Категории */
+        /* Сетка категорий */
         .categories-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            padding: 10px 20px;
+            gap: 12px;
+            padding: 15px 20px;
         }
+
         .cat-item {
-            text-align: center;
-            font-size: 0.75rem;
-            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
+
+        .cat-item:active { transform: scale(0.9); }
+
         .cat-icon {
+            width: 64px;
+            height: 64px;
             background: var(--secondary-bg);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 5px;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
         }
 
-        /* Товары */
-        .section-title { padding: 10px 20px; margin: 0; font-size: 1.3rem; }
+        .cat-item span { font-size: 0.75rem; font-weight: 600; color: var(--text-main); }
 
+        /* Заголовки разделов */
+        .section-title {
+            padding: 20px 20px 10px;
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        /* Сетка товаров */
         .products-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            padding: 10px 20px 120px;
+            gap: 12px;
+            padding: 10px 20px;
         }
 
         .product-card {
             background: var(--bg);
-            border: 1px solid var(--secondary-bg);
-            border-radius: var(--radius);
+            border: 1px solid #eee;
+            border-radius: var(--radius-lg);
             padding: 12px;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
         }
 
         .product-img {
             width: 100%;
             aspect-ratio: 1/1;
             object-fit: contain;
-            border-radius: 12px;
-            margin-bottom: 8px;
-        }
-
-        .product-price {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin: 5px 0;
-        }
-
-        .product-name {
-            font-size: 0.9rem;
-            color: var(--text-main);
+            border-radius: var(--radius-md);
             margin-bottom: 10px;
-            height: 2.4em;
-            overflow: hidden;
         }
 
-        /* Кнопки управления */
+        .product-price { font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin: 0; }
+        .product-name { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 12px; line-height: 1.2; height: 2.4em; overflow: hidden; }
+
+        /* Кнопки */
         .add-btn {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 10px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: var(--radius-md);
             font-weight: 700;
+            font-size: 0.9rem;
             width: 100%;
-            cursor: pointer;
         }
 
         .qty-controls {
@@ -135,77 +164,97 @@
             justify-content: space-between;
             align-items: center;
             background: var(--secondary-bg);
-            border-radius: 12px;
-            padding: 2px;
+            border-radius: var(--radius-md);
+            padding: 3px;
         }
 
         .qty-btn {
-            width: 35px;
-            height: 35px;
+            width: 36px;
+            height: 36px;
             border: none;
             background: white;
             border-radius: 10px;
             font-size: 1.2rem;
             font-weight: 700;
             color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        /* Подвал с корзиной */
+        /* Плавающая кнопка корзины (снизу) */
         .cart-footer {
             position: fixed;
-            bottom: 20px;
+            bottom: 25px;
             left: 20px;
             right: 20px;
             background: var(--primary);
             color: white;
-            padding: 18px;
-            border-radius: 20px;
+            padding: 20px;
+            border-radius: 22px;
             display: none;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);
-            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(39, 174, 96, 0.4);
+            z-index: 1001;
+            cursor: pointer;
         }
-        .cart-footer span { font-weight: 700; font-size: 1.1rem; }
+
+        .cart-footer span { font-weight: 800; font-size: 1.1rem; }
+
+        .spacer { height: 120px; } /* Место под плавающую кнопку */
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">Маркет</div>
-        <div style="font-size: 1.5rem;">🛒</div>
+        <div class="logo">МАРКЕТ</div>
+        <div class="cart-icon-wrapper" onclick="sendOrder()">
+            🛒
+            <div id="cart-badge">0</div>
+        </div>
     </header>
 
-    <div class="search-bar">
-        <input type="text" class="search-input" placeholder="Поиск продуктов...">
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="Поиск продуктов..." oninput="filterProducts(this.value)">
     </div>
 
     <div class="categories-grid">
-        <div class="cat-item"><div class="cat-icon">🥪</div>Еда</div>
-        <div class="cat-item"><div class="cat-icon">🥤</div>Напитки</div>
-        <div class="cat-item"><div class="cat-icon">🍰</div>Десерты</div>
-        <div class="cat-item"><div class="cat-icon">📦</div>Другое</div>
-    </div>
-
-    <h2 class="section-title">Все товары</h2>
-
-    <div class="products-grid" id="catalog">
-        {% for item in items %}
-        <div class="product-card">
-            <img src="{{ item.photo_url }}" class="product-img">
-            <div class="product-price">{{ item.price }} ₽</div>
-            <div class="product-name">{{ item.name }}</div>
-            
-            <button class="add-btn" id="add-{{ item.id }}" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, 1)">В корзину</button>
-            
-            <div class="qty-controls" id="ctrl-{{ item.id }}">
-                <button class="qty-btn" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, -1)">−</button>
-                <span style="font-weight: 700;" id="count-{{ item.id }}">0</span>
-                <button class="qty-btn" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, 1)">+</button>
-            </div>
+        {% for cat, emoji in [("Канапки", "🥪"), ("Напитки", "🥤"), ("Десерты", "🍰"), ("Другое", "📦")] %}
+        <div class="cat-item" onclick="scrollToCategory('{{ cat }}')">
+            <div class="cat-icon">{{ emoji }}</div>
+            <span>{{ cat }}</span>
         </div>
         {% endfor %}
     </div>
+
+    <div id="catalog">
+        {% for cat in ["Канапки", "Напитки", "Десерты", "Другое"] %}
+            {% set cat_items = items | selectattr("category", "equalto", cat) | list %}
+            {% if cat_items %}
+                <h2 class="section-title" id="section-{{ cat }}">{{ cat }}</h2>
+                <div class="products-grid">
+                    {% for item in cat_items %}
+                    <div class="product-card" data-name="{{ item.name.lower() }}">
+                        <img src="{{ item.photo_url }}" class="product-img">
+                        <div>
+                            <p class="product-price">{{ item.price }} ₽</p>
+                            <p class="product-name">{{ item.name }}</p>
+                        </div>
+                        
+                        <button class="add-btn" id="add-{{ item.id }}" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, 1)">В корзину</button>
+                        
+                        <div class="qty-controls" id="ctrl-{{ item.id }}">
+                            <button class="qty-btn" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, -1)">−</button>
+                            <span style="font-weight: 700;" id="count-{{ item.id }}">0</span>
+                            <button class="qty-btn" onclick="updateQty('{{ item.id }}', '{{ item.name }}', {{ item.price }}, 1)">+</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="spacer"></div>
 
     <div class="cart-footer" id="cart-footer" onclick="sendOrder()">
         <span>Оформить заказ</span>
@@ -216,15 +265,33 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.backgroundColor = '#ffffff';
-        tg.headerColor = '#ffffff';
+        tg.enableClosingConfirmation();
 
         let cart = {};
         let total = 0;
 
+        // Плавный скролл к категории
+        function scrollToCategory(catName) {
+            const el = document.getElementById(`section-${catName}`);
+            if (el) {
+                const offset = 80; 
+                const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+                window.scrollTo({top: y, behavior: 'smooth'});
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        // Поиск (фильтрация)
+        function filterProducts(query) {
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                card.style.display = name.includes(query.toLowerCase()) ? 'flex' : 'none';
+            });
+        }
+
         function updateQty(id, name, price, delta) {
             if (!cart[id]) cart[id] = { name: name, price: price, qty: 0 };
-            
             cart[id].qty += delta;
             
             const addBtn = document.getElementById(`add-${id}`);
@@ -240,12 +307,11 @@
                 ctrl.style.display = 'none';
                 delete cart[id];
             }
-
-            renderFooter();
-            tg.HapticFeedback.impactOccurred('light');
+            renderUI();
+            tg.HapticFeedback.selectionChanged();
         }
 
-        function renderFooter() {
+        function renderUI() {
             total = 0;
             let count = 0;
             for (let id in cart) {
@@ -254,19 +320,27 @@
             }
             
             const footer = document.getElementById('cart-footer');
+            const badge = document.getElementById('cart-badge');
+            
             if (count > 0) {
                 footer.style.display = 'flex';
+                badge.style.display = 'flex';
+                badge.innerText = count;
                 document.getElementById('total-price').innerText = total + ' ₽';
             } else {
                 footer.style.display = 'none';
+                badge.style.display = 'none';
             }
         }
 
         function sendOrder() {
-            let items = Object.values(cart);
+            const items = Object.values(cart);
+            if (items.length === 0) {
+                tg.showAlert("Ваша корзина пуста!");
+                return;
+            }
             tg.sendData(JSON.stringify({ items: items, total: total }));
         }
     </script>
 </body>
 </html>
-
