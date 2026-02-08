@@ -31,50 +31,29 @@ def get_db():
     finally:
         db.close()
 
-# --- ЛОГИКА БОТА ---
-
 @dp.message(F.text == "/start")
 async def cmd_start(message: types.Message):
     builder = ReplyKeyboardBuilder()
     builder.row(KeyboardButton(text="Открыть магазин 🛍", web_app=WebAppInfo(url=APP_URL)))
-    
     if message.from_user.id == ADMIN_ID:
         builder.row(KeyboardButton(text="Админ-панель ⚙️", web_app=WebAppInfo(url=f"{APP_URL}/admin")))
-    
-    await message.answer(
-        f"Привет, {message.from_user.first_name}! 👋\nВыберите товары в нашем меню:",
-        reply_markup=builder.as_markup(resize_keyboard=True)
-    )
+    await message.answer("Добро пожаловать в наш маркет!", reply_markup=builder.as_markup(resize_keyboard=True))
 
 @dp.message(F.web_app_data)
 async def handle_web_app_data(message: types.Message):
-    try:
-        data = json.loads(message.web_app_data.data)
-        items = data.get("items", [])
-        total = data.get("total", 0)
+    data = json.loads(message.web_app_data.data)
+    items = data.get("items", [])
+    total = data.get("total", 0)
 
-        # Формируем чек
-        receipt = "🛍 **Ваш заказ оформлен!**\n"
-        receipt += "—" * 15 + "\n"
-        for item in items:
-            receipt += f"🔹 {item['name']} x{item['qty']} = {item['qty']*item['price']}₽\n"
-        receipt += "—" * 15 + "\n"
-        receipt += f"💰 **ИТОГО: {total}₽**"
-        
-        await message.answer(receipt, parse_mode="Markdown")
-
-        # Уведомляем админа
-        if ADMIN_ID:
-            user = message.from_user
-            username = f"@{user.username}" if user.username else f"ID: {user.id}"
-            admin_msg = f"🔔 **НОВЫЙ ЗАКАЗ** от {username}\n\n" + receipt
-            await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-            
-    except Exception as e:
-        logging.error(f"Order error: {e}")
-        await message.answer("⚠️ Ошибка при обработке заказа.")
-
-# --- ВЕБ-ИНТЕРФЕЙС ---
+    res = "🛍 **Ваш заказ:**\n" + "—"*15 + "\n"
+    for i in items:
+        res += f"🔹 {i['name']} x{i['qty']} = {i['qty']*i['price']}₽\n"
+    res += "—"*15 + f"\n💰 **Итого: {total}₽**"
+    
+    await message.answer(res, parse_mode="Markdown")
+    if ADMIN_ID:
+        user = message.from_user
+        await bot.send_message(ADMIN_ID, f"🔔 **НОВЫЙ ЗАКАЗ** от @{user.username or user.id}\n\n{res}", parse_mode="Markdown")
 
 @app.get("/", response_class=HTMLResponse)
 async def shop_page(request: Request, db: Session = Depends(get_db)):
@@ -87,9 +66,8 @@ async def admin_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin.html", {"request": request, "items": items})
 
 @app.post("/add")
-async def add_item(name: str = Form(...), price: float = Form(...), photo: str = Form(...), db: Session = Depends(get_db)):
-    new_item = Item(name=name, price=price, photo_url=photo)
-    db.add(new_item)
+async def add_item(name: str = Form(...), price: float = Form(...), photo: str = Form(...), category: str = Form(...), db: Session = Depends(get_db)):
+    db.add(Item(name=name, price=price, photo_url=photo, category=category))
     db.commit()
     return RedirectResponse(url="/admin", status_code=303)
 
