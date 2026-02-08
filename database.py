@@ -4,7 +4,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
-
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -18,6 +17,6 @@ class Item(Base):
     name = Column(String)
     price = Column(Float)
     photo_url = Column(String)
-    category = Column(String, default="Другое") # Поле категории
+    category = Column(String, default="Другое")
 
 Base.metadata.create_all(bind=engine)
