@@ -2,42 +2,39 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Админка магазина</title>
+    <title>Админка</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
-        .form-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input { display: block; width: 100%; margin: 10px 0; padding: 12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; }
-        .btn-add { background: #28a745; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .item-list { background: white; padding: 15px; border-radius: 12px; }
-        .item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
-        .btn-del { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, select { display: block; width: 100%; margin: 10px 0; padding: 12px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-add { background: #28a745; color: white; }
+        .item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
-    <div class="form-card">
-        <h3>➕ Добавить товар</h3>
+    <div class="card">
+        <h3>Добавить товар</h3>
         <form action="/add" method="post">
-            <input name="name" placeholder="Название (например: Пицца)" required>
-            <input name="price" type="number" step="0.01" placeholder="Цена (руб)" required>
-            <input name="photo" placeholder="Ссылка на фото (URL)" required>
-            <button type="submit" class="btn-add">Сохранить товар</button>
+            <input name="name" placeholder="Название" required>
+            <input name="price" type="number" step="0.01" placeholder="Цена" required>
+            <input name="photo" placeholder="Ссылка на фото" required>
+            <select name="category">
+                <option value="Еда">🍕 Еда</option>
+                <option value="Напитки">🥤 Напитки</option>
+                <option value="Десерты">🍰 Десерты</option>
+                <option value="Другое">📦 Другое</option>
+            </select>
+            <button type="submit" class="btn-add">Сохранить</button>
         </form>
     </div>
-
-    <div class="item-list">
-        <h3>📦 Товары в базе:</h3>
-        {% if not items %}
-            <p>База данных пуста. Добавьте первый товар выше!</p>
-        {% endif %}
+    <div class="card">
+        <h3>Список товаров</h3>
         {% for item in items %}
         <div class="item">
-            <div>
-                <strong>{{ item.name }}</strong> — {{ item.price }} ₽
-            </div>
-            <form action="/delete/{{ item.id }}" method="post" style="margin: 0;">
-                <button type="submit" class="btn-del">Удалить</button>
-            </form>
+            <span>{{ item.category }} | {{ item.name }} - {{ item.price }}₽</span>
+            <form action="/delete/{{ item.id }}" method="post"><button style="background:red; color:white; padding:5px;">X</button></form>
         </div>
         {% endfor %}
     </div>
