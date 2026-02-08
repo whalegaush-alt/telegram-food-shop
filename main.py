@@ -26,10 +26,8 @@ templates = Jinja2Templates(directory="templates")
 
 def get_db():
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    try: yield db
+    finally: db.close()
 
 @dp.message(F.text == "/start")
 async def cmd_start(message: types.Message):
@@ -37,23 +35,25 @@ async def cmd_start(message: types.Message):
     builder.row(KeyboardButton(text="Открыть магазин 🛍", web_app=WebAppInfo(url=APP_URL)))
     if message.from_user.id == ADMIN_ID:
         builder.row(KeyboardButton(text="Админ-панель ⚙️", web_app=WebAppInfo(url=f"{APP_URL}/admin")))
-    await message.answer("Добро пожаловать в наш маркет!", reply_markup=builder.as_markup(resize_keyboard=True))
+    await message.answer("Witamy в нашем магазине! Выбирайте товары ниже:", reply_markup=builder.as_markup(resize_keyboard=True))
 
 @dp.message(F.web_app_data)
 async def handle_web_app_data(message: types.Message):
-    data = json.loads(message.web_app_data.data)
-    items = data.get("items", [])
-    total = data.get("total", 0)
+    try:
+        data = json.loads(message.web_app_data.data)
+        items = data.get("items", [])
+        total = data.get("total", "0 zł")
 
-    res = "🛍 **Ваш заказ:**\n" + "—"*15 + "\n"
-    for i in items:
-        res += f"🔹 {i['name']} x{i['qty']} = {i['qty']*i['price']}₽\n"
-    res += "—"*15 + f"\n💰 **Итого: {total}₽**"
-    
-    await message.answer(res, parse_mode="Markdown")
-    if ADMIN_ID:
-        user = message.from_user
-        await bot.send_message(ADMIN_ID, f"🔔 **НОВЫЙ ЗАКАЗ** от @{user.username or user.id}\n\n{res}", parse_mode="Markdown")
+        res = "🛍 **Новый заказ:**\n" + "—"*15 + "\n"
+        for i in items:
+            res += f"🔹 {i['name']} x{i['qty']} = {float(i['qty'])*float(i['price'])} zł\n"
+        res += "—"*15 + f"\n💰 **Итого: {total}**"
+        
+        await message.answer(res, parse_mode="Markdown")
+        if ADMIN_ID:
+            await bot.send_message(ADMIN_ID, f"🔔 **ЗАКАЗ** от @{message.from_user.username or message.from_user.id}\n\n{res}", parse_mode="Markdown")
+    except Exception as e:
+        logging.error(e)
 
 @app.get("/", response_class=HTMLResponse)
 async def shop_page(request: Request, db: Session = Depends(get_db)):
