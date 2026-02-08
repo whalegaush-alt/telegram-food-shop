@@ -3,8 +3,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Railway сам выдаст DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -16,7 +18,6 @@ class Item(Base):
     name = Column(String)
     price = Column(Float)
     photo_url = Column(String)
+    category = Column(String, default="Другое") # Поле категории
 
-# Создаем таблицы
 Base.metadata.create_all(bind=engine)
-
