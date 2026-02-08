@@ -6,253 +6,132 @@
     <title>Маркет zł</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #27ae60;
-            --bg: #ffffff;
-            --secondary-bg: #f5f5f7;
-            --text-main: #1a1a1a;
-            --radius-lg: 20px;
-            --radius-md: 12px;
+        :root { --primary: #27ae60; --bg: #ffffff; --sec-bg: #f5f5f7; --text: #1a1a1a; --radius: 20px; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--text); -webkit-tap-highlight-color: transparent; }
+        
+        header { 
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; 
+            position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 1000; border-bottom: 1px solid #eee;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0; padding: 0;
-            background-color: var(--bg);
-            color: var(--text-main);
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-        }
-
-        /* Шапка */
-        header {
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky; top: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            border-bottom: 1px solid var(--secondary-bg);
-        }
-
         .logo { font-weight: 800; font-size: 1.3rem; color: var(--primary); }
-        .cart-icon-wrapper { font-size: 1.6rem; cursor: pointer; position: relative; }
-        #cart-badge {
-            position: absolute; top: 0; right: 0;
-            background: #eb5757; color: white;
-            font-size: 0.7rem; font-weight: 700;
-            min-width: 18px; height: 18px;
-            border-radius: 50%; display: none;
-            align-items: center; justify-content: center;
-            border: 2px solid white;
-        }
+        .cart-icon { font-size: 1.6rem; cursor: pointer; position: relative; }
+        #badge { position: absolute; top: 0; right: 0; background: #eb5757; color: white; font-size: 0.7rem; min-width: 18px; height: 18px; border-radius: 50%; display: none; align-items: center; justify-content: center; border: 2px solid white; }
 
-        /* Категории */
-        .categories-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px 20px; }
-        .cat-item { text-align: center; cursor: pointer; }
-        .cat-icon { 
-            width: 60px; height: 60px; background: var(--secondary-bg); 
-            border-radius: 18px; display: flex; align-items: center; justify-content: center; 
-            font-size: 1.7rem; margin: 0 auto 5px; 
-        }
+        .categories { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px 20px; }
+        .cat-item { text-align: center; }
+        .cat-box { width: 60px; height: 60px; background: var(--sec-bg); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; margin: 0 auto 5px; }
         .cat-item span { font-size: 0.7rem; font-weight: 600; }
 
-        /* Сетка товаров */
-        .section-title { padding: 15px 20px 5px; margin: 0; font-size: 1.2rem; }
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 20px; }
-        .product-card { border: 1px solid #eee; border-radius: var(--radius-lg); padding: 12px; display: flex; flex-direction: column; }
-        .product-img { width: 100%; aspect-ratio: 1/1; object-fit: contain; border-radius: var(--radius-md); }
-        .product-price { font-size: 1.1rem; font-weight: 700; margin: 5px 0; }
-        .product-name { font-size: 0.8rem; color: #666; height: 2.4em; overflow: hidden; margin-bottom: 10px; }
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 10px 20px 100px; }
+        .product-card { border: 1px solid #eee; border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; }
+        .product-img { width: 100%; aspect-ratio: 1/1; object-fit: contain; border-radius: 12px; }
+        .price { font-size: 1.1rem; font-weight: 700; margin: 8px 0 4px; color: var(--primary); }
+        .name { font-size: 0.85rem; height: 2.4em; overflow: hidden; margin-bottom: 12px; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 12px; font-weight: 700; }
 
-        .add-btn { 
-            background: var(--primary); color: white; border: none; 
-            padding: 10px; border-radius: var(--radius-md); font-weight: 700; 
-        }
+        /* Modal Cart */
+        #cart-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: white; z-index: 2000; display: none; flex-direction: column; padding: 20px; }
+        .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cart-list { flex-grow: 1; overflow-y: auto; }
+        .cart-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .checkout-btn { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 15px; font-size: 1.1rem; font-weight: 700; margin-top: 15px; }
 
-        /* Корзина (Модальное окно) */
-        #cart-modal {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: white; z-index: 2000;
-            display: none; flex-direction: column;
-            padding: 20px;
-        }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .cart-items-list { flex-grow: 1; overflow-y: auto; }
-        .cart-item-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 10px 0; border-bottom: 1px solid #eee; 
-        }
-
-        .checkout-btn {
-            background: var(--primary); color: white; border: none;
-            padding: 18px; border-radius: var(--radius-md);
-            font-size: 1.1rem; font-weight: 700; width: 100%;
-            margin-top: 15px;
-        }
-        
-        .close-modal { font-size: 1.5rem; cursor: pointer; padding: 5px; }
-
-        /* Плавающая кнопка внизу */
-        .cart-footer {
-            position: fixed; bottom: 20px; left: 20px; right: 20px;
-            background: var(--primary); color: white;
-            padding: 18px; border-radius: 20px;
-            display: none; justify-content: space-between; align-items: center;
-            box-shadow: 0 10px 25px rgba(39, 174, 96, 0.3);
-            z-index: 900;
-        }
+        .footer-btn { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--primary); color: white; padding: 18px; border-radius: 20px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); z-index: 999; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo">МАРКЕТ</div>
-        <div class="cart-icon-wrapper" onclick="toggleCart(true)">
-            🛒
-            <div id="cart-badge">0</div>
-        </div>
-    </header>
+<header>
+    <div class="logo">MARКET</div>
+    <div class="cart-icon" onclick="toggleCart(true)">🛒<div id="badge">0</div></div>
+</header>
 
-    <div class="categories-grid">
-        {% for cat, emoji in [("Канапки", "🥪"), ("Напитки", "🥤"), ("Десерты", "🍰"), ("Другое", "📦")] %}
-        <div class="cat-item" onclick="scrollToCategory('{{ cat }}')">
-            <div class="cat-icon">{{ emoji }}</div>
-            <span>{{ cat }}</span>
+<div class="categories">
+    {% for c, e in [("Канапки", "🥪"), ("Напитки", "🥤"), ("Десерты", "🍰"), ("Другое", "📦")] %}
+    <div class="cat-item" onclick="document.getElementById('s-{{c}}').scrollIntoView({behavior:'smooth'})">
+        <div class="cat-box">{{e}}</div><span>{{c}}</span>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="catalog">
+    {% for cat in ["Канапки", "Напитки", "Десерты", "Другое"] %}
+    {% set items_in = items | selectattr("category", "equalto", cat) | list %}
+    {% if items_in %}
+    <h2 id="s-{{cat}}" style="padding: 10px 20px 0; font-size: 1.3rem;">{{cat}}</h2>
+    <div class="products-grid">
+        {% for i in items_in %}
+        <div class="product-card">
+            <img src="{{ i.photo_url }}" class="product-img">
+            <div class="price">{{ i.price }} zł</div>
+            <div class="name">{{ i.name }}</div>
+            <button class="btn-add" onclick="add('{{i.id}}','{{i.name}}',{{i.price}})">В корзину</button>
         </div>
         {% endfor %}
     </div>
+    {% endif %}
+    {% endfor %}
+</div>
 
-    <div id="catalog">
-        {% for cat in ["Канапки", "Напитки", "Десерты", "Другое"] %}
-            {% set cat_items = items | selectattr("category", "equalto", cat) | list %}
-            {% if cat_items %}
-                <h2 class="section-title" id="section-{{ cat }}">{{ cat }}</h2>
-                <div class="products-grid">
-                    {% for item in cat_items %}
-                    <div class="product-card">
-                        <img src="{{ item.photo_url }}" class="product-img">
-                        <div class="product-price">{{ item.price }} zł</div>
-                        <div class="product-name">{{ item.name }}</div>
-                        <button class="add-btn" onclick="addToCart('{{ item.id }}', '{{ item.name }}', {{ item.price }})">В корзину</button>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endfor %}
+<div id="cart-modal">
+    <div class="modal-top"><h2>Koszyk</h2><div onclick="toggleCart(false)" style="font-size:1.5rem">✕</div></div>
+    <div class="cart-list" id="cart-list"></div>
+    <div style="padding-top:15px; border-top:1px solid #eee">
+        <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.2rem"><span>Total:</span><span id="m-total">0 zł</span></div>
+        <button class="checkout-btn" onclick="send()">Оформить заказ</button>
     </div>
+</div>
 
-    <div id="cart-modal">
-        <div class="modal-header">
-            <h2 style="margin:0">Ваш заказ</h2>
-            <div class="close-modal" onclick="toggleCart(false)">✕</div>
-        </div>
-        <div class="cart-items-list" id="cart-items-content">
-            </div>
-        <div style="border-top: 2px solid var(--secondary-bg); padding-top: 15px;">
-            <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.2rem;">
-                <span>Итого:</span>
-                <span id="modal-total">0 zł</span>
-            </div>
-            <button class="checkout-btn" onclick="finishOrder()">Оформить заказ</button>
-        </div>
-    </div>
+<div class="footer-btn" id="footer" onclick="toggleCart(true)"><span>Просмотр</span><span id="f-total">0 zł</span></div>
 
-    <div class="cart-footer" id="cart-footer" onclick="toggleCart(true)">
-        <span>Просмотр корзины</span>
-        <span id="footer-total">0 zł</span>
-    </div>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    let cart = {};
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    function add(id, n, p) {
+        if(!cart[id]) cart[id] = {n, p, q:0};
+        cart[id].q++;
+        update();
+        tg.HapticFeedback.impactOccurred('light');
+    }
 
-        let cart = {};
+    function update() {
+        let t = 0, c = 0;
+        for(let id in cart) { t += cart[id].p * cart[id].q; c += cart[id].q; }
+        document.getElementById('badge').innerText = c;
+        document.getElementById('badge').style.display = c > 0 ? 'flex' : 'none';
+        document.getElementById('footer').style.display = c > 0 ? 'flex' : 'none';
+        document.getElementById('f-total').innerText = t.toFixed(2) + ' zł';
+        document.getElementById('m-total').innerText = t.toFixed(2) + ' zł';
+    }
 
-        function addToCart(id, name, price) {
-            if (!cart[id]) cart[id] = { name, price, qty: 0 };
-            cart[id].qty++;
-            updateUI();
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        function toggleCart(show) {
-            const modal = document.getElementById('cart-modal');
-            if (show) {
-                renderCartItems();
-                modal.style.display = 'flex';
-            } else {
-                modal.style.display = 'none';
+    function toggleCart(s) {
+        if(s) {
+            let h = '';
+            for(let id in cart) {
+                h += `<div class="cart-row"><div><b>${cart[id].n}</b><br>${cart[id].p} zł</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                <button onclick="change('${id}',-1)">-</button><b>${cart[id].q}</b><button onclick="change('${id}',1)">+</button>
+                </div></div>`;
             }
-        }
+            document.getElementById('cart-list').innerHTML = h || '<p>Пусто</p>';
+            document.getElementById('cart-modal').style.display = 'flex';
+        } else { document.getElementById('cart-modal').style.display = 'none'; }
+    }
 
-        function renderCartItems() {
-            const container = document.getElementById('cart-items-content');
-            container.innerHTML = '';
-            let total = 0;
+    function change(id, d) {
+        cart[id].q += d;
+        if(cart[id].q <= 0) delete cart[id];
+        update(); toggleCart(true);
+    }
 
-            for (let id in cart) {
-                const item = cart[id];
-                total += item.price * item.qty;
-                container.innerHTML += `
-                    <div class="cart-item-row">
-                        <div>
-                            <div style="font-weight:600">${item.name}</div>
-                            <div style="color:var(--primary); font-size:0.9rem">${item.price} zł</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px">
-                            <button onclick="updateQty('${id}', -1)" style="border:none; border-radius:5px; padding:5px 10px">-</button>
-                            <span style="font-weight:700">${item.qty}</span>
-                            <button onclick="updateQty('${id}', 1)" style="border:none; border-radius:5px; padding:5px 10px">+</button>
-                        </div>
-                    </div>
-                `;
-            }
-            document.getElementById('modal-total').innerText = total.toFixed(2) + ' zł';
-            if (Object.keys(cart).length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:#999; margin-top:50px">Корзина пуста</p>';
-            }
-        }
-
-        function updateQty(id, delta) {
-            if (!cart[id]) return;
-            cart[id].qty += delta;
-            if (cart[id].qty <= 0) delete cart[id];
-            renderCartItems();
-            updateUI();
-            tg.HapticFeedback.selectionChanged();
-        }
-
-        function updateUI() {
-            let total = 0;
-            let count = 0;
-            for (let id in cart) {
-                total += cart[id].price * cart[id].qty;
-                count += cart[id].qty;
-            }
-            
-            const badge = document.getElementById('cart-badge');
-            const footer = document.getElementById('cart-footer');
-            
-            badge.innerText = count;
-            badge.style.display = count > 0 ? 'flex' : 'none';
-            footer.style.display = count > 0 ? 'flex' : 'none';
-            document.getElementById('footer-total').innerText = total.toFixed(2) + ' zł';
-        }
-
-        function finishOrder() {
-            const items = Object.values(cart);
-            if (items.length === 0) return;
-            tg.sendData(JSON.stringify({ items, total: document.getElementById('modal-total').innerText }));
-        }
-
-        function scrollToCategory(cat) {
-            const el = document.getElementById('section-' + cat);
-            if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
-        }
-    </script>
+    function send() {
+        if(Object.keys(cart).length === 0) return;
+        let items = Object.values(cart).map(i => ({name: i.n, qty: i.q, price: i.p}));
+        tg.sendData(JSON.stringify({items, total: document.getElementById('m-total').innerText}));
+    }
+</script>
 </body>
 </html>
