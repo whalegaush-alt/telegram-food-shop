@@ -5,79 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Магазин</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; background: #f4f7f9; padding-bottom: 100px; }
-        .product { background: white; border-radius: 20px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; margin-right: 15px; }
+        body { font-family: sans-serif; margin: 0; padding: 15px; background: #f4f7f9; padding-bottom: 100px; }
+        .cat-title { margin: 20px 0 10px 5px; color: #555; font-size: 1.2rem; border-left: 4px solid #0088cc; padding-left: 10px; }
+        .product { background: white; border-radius: 15px; padding: 12px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .product img { width: 60px; height: 60px; object-fit: cover; border-radius: 10px; margin-right: 15px; }
         .info { flex-grow: 1; }
-        .info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
-        .price { color: #2ecc71; font-weight: bold; margin: 0; }
-        .controls { display: flex; align-items: center; background: #f0f2f5; border-radius: 10px; padding: 5px; }
-        .btn-qty { border: none; background: none; width: 30px; height: 30px; font-size: 1.2rem; cursor: pointer; color: #0088cc; font-weight: bold; }
-        .count { margin: 0 10px; font-weight: bold; min-width: 20px; text-align: center; }
-        #cart-btn { position: fixed; bottom: 20px; left: 15px; right: 15px; background: #0088cc; color: white; border: none; border-radius: 15px; padding: 18px; font-size: 1.1rem; font-weight: bold; display: none; box-shadow: 0 5px 20px rgba(0,136,204,0.3); }
+        .info h3 { margin: 0; font-size: 0.95rem; }
+        .price { color: #2ecc71; font-weight: bold; margin: 2px 0; }
+        .controls { display: flex; align-items: center; background: #f0f2f5; border-radius: 8px; padding: 2px; }
+        .btn-qty { border: none; background: none; width: 28px; height: 28px; font-size: 1.1rem; cursor: pointer; color: #0088cc; }
+        .count { margin: 0 8px; font-weight: bold; min-width: 15px; text-align: center; }
+        #cart-btn { position: fixed; bottom: 20px; left: 15px; right: 15px; background: #0088cc; color: white; border: none; border-radius: 12px; padding: 15px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
     <div id="catalog">
-        {% for item in items %}
-        <div class="product">
-            <img src="{{ item.photo_url }}">
-            <div class="info">
-                <h3>{{ item.name }}</h3>
-                <p class="price">{{ item.price }} ₽</p>
-            </div>
-            <div class="controls">
-                <button class="btn-qty" onclick="changeQty('{{ item.name }}', {{ item.price }}, -1)">−</button>
-                <span class="count" id="count-{{ item.name }}">0</span>
-                <button class="btn-qty" onclick="changeQty('{{ item.name }}', {{ item.price }}, 1)">+</button>
-            </div>
-        </div>
+        {% for cat in ["Еда", "Напитки", "Десерты", "Другое"] %}
+            {% set cat_items = items | selectattr("category", "equalto", cat) | list %}
+            {% if cat_items %}
+                <div class="cat-title">{{ cat }}</div>
+                {% for item in cat_items %}
+                <div class="product">
+                    <img src="{{ item.photo_url }}">
+                    <div class="info"><h3>{{ item.name }}</h3><p class="price">{{ item.price }} ₽</p></div>
+                    <div class="controls">
+                        <button class="btn-qty" onclick="changeQty('{{ item.name }}', {{ item.price }}, -1)">−</button>
+                        <span class="count" id="count-{{ item.name }}">0</span>
+                        <button class="btn-qty" onclick="changeQty('{{ item.name }}', {{ item.price }}, 1)">+</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
         {% endfor %}
     </div>
-
-    <button id="cart-btn" onclick="sendOrder()">
-        Корзина: <span id="total-price">0</span> ₽
-    </button>
+    <button id="cart-btn" onclick="sendOrder()">🛍 Заказать: <span id="total-price">0</span> ₽</button>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        let cart = {};
-        let total = 0;
+        let cart = {}, total = 0;
 
         function changeQty(name, price, delta) {
             if (!cart[name]) cart[name] = { qty: 0, price: price };
-            
             cart[name].qty += delta;
             if (cart[name].qty < 0) cart[name].qty = 0;
-            
             document.getElementById(`count-${name}`).innerText = cart[name].qty;
-            
-            calculateTotal();
-            tg.HapticFeedback.selectionChanged();
-        }
-
-        function calculateTotal() {
-            total = 0;
-            let hasItems = false;
-            for (let name in cart) {
-                total += cart[name].qty * cart[name].price;
-                if (cart[name].qty > 0) hasItems = true;
-            }
+            total = 0; let has = false;
+            for (let n in cart) { total += cart[n].qty * cart[n].price; if (cart[n].qty > 0) has = true; }
             document.getElementById('total-price').innerText = total;
-            document.getElementById('cart-btn').style.display = hasItems ? 'block' : 'none';
+            document.getElementById('cart-btn').style.display = has ? 'block' : 'none';
+            tg.HapticFeedback.impactOccurred('light');
         }
 
         function sendOrder() {
-            let finalItems = [];
-            for (let name in cart) {
-                if (cart[name].qty > 0) {
-                    finalItems.push({ name: name, qty: cart[name].qty, price: cart[name].price });
-                }
-            }
-            tg.sendData(JSON.stringify({ items: finalItems, total: total }));
+            let final = [];
+            for (let n in cart) if (cart[n].qty > 0) final.push({ name: n, qty: cart[n].qty, price: cart[n].price });
+            tg.sendData(JSON.stringify({ items: final, total: total }));
         }
     </script>
 </body>
